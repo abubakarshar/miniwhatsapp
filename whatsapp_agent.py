@@ -21,6 +21,9 @@ def env(name: str) -> str:
     return ""
 
 
+VERSION = "v3"
+print(f"whatsapp_agent {VERSION} starting")
+
 WHAPI_TOKEN = env("WHAPI_TOKEN")
 WHAPI_CHANNEL_ID = env("WHAPI_CHANNEL_ID")
 
@@ -105,7 +108,7 @@ def webhook():
 
 @app.get("/")
 def health():
-    return f"Bot running | token loaded: {bool(WHAPI_TOKEN)} | channel loaded: {bool(WHAPI_CHANNEL_ID)}"
+    return f"Bot {VERSION} running | token loaded: {bool(WHAPI_TOKEN)} | channel loaded: {bool(WHAPI_CHANNEL_ID)}"
 
 
 if __name__ == "__main__":
