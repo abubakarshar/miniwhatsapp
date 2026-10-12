@@ -109,6 +109,27 @@ def webhook():
 def health():
     return f"Bot {VERSION} running | token loaded: {bool(WHAPI_TOKEN)} | channel loaded: {bool(WHAPI_CHANNEL_ID)}"
 
+@app.get("/diag")
+def diag():
+    """Read-only check of the Whapi channel status and saved webhook (no secrets shown)."""
+    out = []
+    headers = {"Authorization": f"Bearer {WHAPI_TOKEN}"}
+    for label, path in (("health", "/health"), ("settings", "/settings")):
+        try:
+            r = requests.get("https://gate.whapi.cloud" + path, headers=headers, timeout=15)
+            try:
+                j = r.json()
+            except Exception:
+                j = {"raw": r.text[:300]}
+            if label == "health":
+                j = {"http": r.status_code, "status": j.get("status"), "channel_id": j.get("channel_id"), "raw": None if r.ok else r.text[:300]}
+            else:
+                j = {"http": r.status_code, "webhooks": j.get("webhooks"), "raw": None if r.ok else r.text[:300]}
+            out.append(f"{label}: {j}")
+        except Exception as e:
+            out.append(f"{label}: ERROR {e}")
+    return "<pre>" + "\n\n".join(out) + "</pre>"
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
