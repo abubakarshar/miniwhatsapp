@@ -26,9 +26,22 @@ import threading
 import requests
 from flask import Flask, request, jsonify
 
-WHAPI_TOKEN = os.environ["WHAPI_TOKEN"]
-WHAPI_CHANNEL_ID = os.environ.get("WHAPI_CHANNEL_ID", "")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+def env(name: str) -> str:
+    """Read an env var, tolerating stray spaces/quotes in its name or value."""
+    for k, v in os.environ.items():
+        if k.strip().strip("\"'").upper() == name:
+            return v.strip().strip("\"'")
+    return ""
+
+
+WHAPI_TOKEN = env("WHAPI_TOKEN")
+WHAPI_CHANNEL_ID = env("WHAPI_CHANNEL_ID")
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY") or None
+
+if not WHAPI_TOKEN:
+    # Print variable NAMES only (never values) to help debugging
+    print("WARNING: WHAPI_TOKEN not found. Variable names seen:",
+          sorted(repr(k) for k in os.environ if "WHAPI" in k.upper() or "TOKEN" in k.upper()))
 
 ACK_MESSAGE = "✅ Got your message! I'll get back to you shortly."
 SYSTEM_PROMPT = "You are a helpful WhatsApp assistant. Keep replies short and friendly."
@@ -102,7 +115,8 @@ def webhook():
 
 @app.get("/")
 def health():
-    return "WhatsApp agent running"
+    return (f"WhatsApp agent running | token loaded: {bool(WHAPI_TOKEN)} | "
+            f"channel loaded: {bool(WHAPI_CHANNEL_ID)} | AI: {bool(ANTHROPIC_API_KEY)}")
 
 
 if __name__ == "__main__":
