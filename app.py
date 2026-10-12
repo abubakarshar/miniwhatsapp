@@ -3,7 +3,7 @@ Mind Master Operations Challenge - WhatsApp auto-reply bot (Whapi.cloud)
 
 Env vars (set in Railway > Variables):
     WHAPI_TOKEN        your Whapi channel token
-    WHAPI_CHANNEL_ID   your channel id (optional, used to filter events)
+    WHAPI_CHANNEL_ID   your channel id (optional)
 """
 import os
 import time
@@ -21,7 +21,7 @@ def env(name: str) -> str:
     return ""
 
 
-VERSION = "v3"
+VERSION = "v4"
 print(f"whatsapp_agent {VERSION} starting")
 
 WHAPI_TOKEN = env("WHAPI_TOKEN")
@@ -67,8 +67,7 @@ def send_whatsapp(chat_id: str, text: str) -> None:
             json={"to": chat_id, "body": text},
             timeout=15,
         )
-        if not r.ok:
-            print("Whapi send error:", r.status_code, r.text)
+        print("Whapi send result:", r.status_code, r.text[:200])
     except Exception as e:
         print("Whapi send exception:", e)
 
@@ -94,11 +93,11 @@ def handle_message(msg: dict) -> None:
 @app.post("/webhook")
 def webhook():
     data = request.get_json(silent=True) or {}
+    msgs = data.get("messages", [])
+    print("Webhook hit | channel:", data.get("channel_id"), "| keys:", list(data.keys()),
+          "| messages:", [(m.get("type"), m.get("from_me"), m.get("chat_id")) for m in msgs])
 
-    if WHAPI_CHANNEL_ID and data.get("channel_id") not in (None, WHAPI_CHANNEL_ID):
-        return jsonify(ok=True)
-
-    for msg in data.get("messages", []):
+    for msg in msgs:
         if msg.get("from_me"):  # never reply to ourselves
             continue
         threading.Thread(target=handle_message, args=(msg,), daemon=True).start()
